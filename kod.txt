@@ -1,0 +1,352 @@
+#include "pch.h"
+#include <stdio.h>
+#include <conio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <malloc.h>
+#include <clocale>
+#include<windows.h>
+
+using namespace std;
+using namespace System;
+using namespace System::IO;
+
+#define ENTER 13
+#define ESC 27
+#define UP 72
+#define DOWN 80
+#define HOME 71
+#define END 79
+
+char dan[8][100] = {
+"Дорогостоящий игрок?                         ",
+"Какой самый забивной игрок?                  ",
+"Алфавитный список всех футболистов           ",
+"Количество игроков в одинаковых бутсах (Nike)",
+"Диаграмма стоимости футболистов              ",
+"Игроки по кол-ву голов и фирмы бутс          ",
+"Вернуться на предыдущую страницу             ",
+"Выход                                        "
+};
+//int NC;
+struct z {
+    char name[15];
+    int goals;
+    int money;
+    char pos[21];
+    char brand[10];
+};
+
+struct sp {
+    char fio[30];
+    long summa;
+    struct sp* sled;
+    struct sp* pred;
+}*spisok;
+
+int menu(int);
+void maxim(struct z*,int);
+void first(struct z*,int);
+void alfalist(struct z*,int);
+void kolvo(struct z*,int);
+void vstavka(struct z*, char*,int);
+void vopros1(struct z*,int);
+void diagram(struct z*,int);
+
+int main(array<System::String^>^ args)
+{
+    int i, n, NC;
+    FILE *in,*out;
+    struct z* players;
+    setlocale(LC_CTYPE, "Russian");
+    Console::CursorVisible::set(false);
+    Console::WindowWidth = 80;
+    Console::WindowHeight = 50;
+    Console::BufferHeight = Console::WindowHeight;
+    Console::BufferWidth = Console::WindowWidth;
+    Console::ForegroundColor = ConsoleColor::DarkRed;
+    Console::BackgroundColor = ConsoleColor::White;
+    Console::Clear();
+
+    if ((in = fopen("miha.txt", "r")) == NULL)
+    {
+        printf("\nФайл miha.txt не открыт !");
+        getch(); exit(1);
+    }
+    out = fopen("out.txt", "w");
+    SetConsoleCP(1251);
+    fscanf(in, "%d", &NC);
+    players = (struct z*)malloc(NC * sizeof(struct z));
+    SetConsoleCP(866);
+    point1:;
+    printf("Список игроков:\n");  
+    printf("Фамилия      Голы  Цена(млн евро)  Позиция     Фирма бутс\n");
+    printf("=========================================================");
+    for (i = 0; i < NC; i++)
+        fscanf(in, "%s%d%d%s%s",
+            players[i].name,
+            &players[i].goals,
+            &players[i].money,
+            players[i].pos,
+            players[i].brand);
+    for (i = 0; i < NC; i++)
+    {
+        fprintf(out, "%s %d %d %s %s \n ", players[i].name,
+            players[i].goals,
+            players[i].money,
+            players[i].pos,
+            players[i].brand);
+    }
+    for (i = 0; i < NC; i++) {
+
+        printf("\n %-12s %-10d %-10d  %-10s  %-10s\n",
+            players[i].name,
+            players[i].goals,
+            players[i].money,
+            players[i].pos,
+            players[i].brand);
+    }
+    
+    printf("=========================================================\n");
+    getch();
+    while (1)
+    {
+        Console::ForegroundColor = System::ConsoleColor::DarkRed;
+        Console::BackgroundColor = System::ConsoleColor::White;
+        Console::Clear();
+        Console::ForegroundColor = System::ConsoleColor::DarkRed;
+        Console::BackgroundColor = System::ConsoleColor::White;
+        Console::CursorLeft = 30;
+        Console::CursorTop = 12;
+        for (i = 0; i < 8; i++)
+        {
+            Console::CursorLeft = 10;
+            Console::CursorTop = i + 5;
+            printf(" %s ", dan[i]);
+        }
+        Console::CursorLeft = 10;
+        Console::CursorTop = 12;
+        n = menu(8);
+        switch (n) {
+        case 1: maxim(players,NC); break;
+        case 2: first(players,NC); break;
+        case 3: alfalist(players,NC); break;
+        case 4: kolvo(players,NC); break;
+        case 5: diagram(players,NC); break;
+        case 6: vopros1(players,NC); break;
+        case 7: {Console::CursorLeft = 0;
+            Console::BackgroundColor = ConsoleColor::White;
+            Console::ForegroundColor = ConsoleColor::DarkRed;
+            Console::CursorTop = 0;
+            Console::Clear();
+            goto point1; }
+
+        case 8: exit(0);
+        }
+    }
+    return 0;
+}
+int menu(int n)
+{
+    int y1 = 0, y2 = n - 1;
+    char c = 1;
+    while (c != ESC)
+    {
+        switch (c) {
+        case DOWN: y2 = y1; y1++; break;
+        case UP: y2 = y1; y1--; break;
+        case ENTER: return y1 + 1;
+        case HOME: y2 = y1; y1 = 0; break;
+        case END: y2 = y1; y1 = n - 1; break;
+
+        }
+        if (y1 > n - 1) { y2 = n - 1; y1 = 0; }
+        if (y1 < 0) { y2 = 0; y1 = n - 1; }
+        Console::ForegroundColor = System::ConsoleColor::White;
+        Console::BackgroundColor = System::ConsoleColor::Black;
+        Console::CursorLeft = 11;
+        Console::CursorTop = y1 + 5;
+        printf(dan[y1]);
+        Console::ForegroundColor = System::ConsoleColor::DarkRed;
+        Console::BackgroundColor = System::ConsoleColor::White;
+        Console::CursorLeft = 11;
+        Console::CursorTop = y2 + 5;
+        printf(dan[y2]);
+        c = getch();
+    }
+    exit(0);
+}
+void maxim(struct z* player,int NC)
+{
+    int i = 0;
+    struct z best;
+    strcpy(best.name, player[0].name);
+    best.money = player[0].money;
+    for (i = 1; i < NC; i++)
+        if (player[i].money > best.money)
+        {
+            strcpy(best.name, player[i].name);
+            best.money = player[i].money;
+        }
+    Console::ForegroundColor = System::ConsoleColor::Red;
+    Console::BackgroundColor = System::ConsoleColor::White;
+    Console::CursorLeft = 10;
+    Console::CursorTop = 15;
+    printf(" Самый дорогой футболист стоит %d млн евро ", best.money);
+    Console::CursorLeft = 10;
+    Console::CursorTop = 16;
+    printf(" Имя футболиста: %s ", best.name);
+    getch();
+}
+void kolvo(struct z* player,int NC)
+{
+    int i, k = 0;
+    for (i = 0; i < NC; i++)
+        if (strcmp(player[i].brand, "Nike") == 0)
+            k++;
+    Console::ForegroundColor = ConsoleColor::Red;
+    Console::BackgroundColor = ConsoleColor::White;
+    Console::CursorLeft = 10;
+    Console::CursorTop = 15;
+    printf(" Игроков в бутсах Nike ");
+    Console::CursorLeft = 10;
+    Console::CursorTop = 16;
+    printf(" Всего : %d ", k);
+    getch();
+}
+void first(struct z* player,int NC)
+{
+    int i = 0;
+    struct z best;
+    strcpy(best.name, player[0].name);
+    best.goals = player[0].goals;
+    best.money = player[0].money;
+    for (i = 1; i < NC; i++)
+        if (player[i].goals > best.goals)
+        {
+            strcpy(best.name, player[i].name);
+            best.goals = player[i].goals;
+            best.money = player[i].money;
+        }
+    Console::ForegroundColor = System::ConsoleColor::Red;
+    Console::BackgroundColor = System::ConsoleColor::White;
+    Console::CursorLeft = 10;
+    Console::CursorTop = 15;
+    printf(" Лучший игрок забил %d голов. Его стоимость: %d млн евро ", best.goals, best.money);
+    Console::CursorLeft = 10;
+    Console::CursorTop = 16;
+    printf(" Имя игрока: %s ", best.name);
+    getch();
+}
+void alfalist(struct z* player,int NC) {
+    int i, x; struct sp* nt, * z;
+    x = 3;
+    Console::ForegroundColor = ConsoleColor::Red;
+    Console::BackgroundColor = ConsoleColor::White; Console::Clear();
+    printf("\n Алфавитный список игроков и Обратный список:\n");
+    printf("Фамилия              Цена                Фамилия             Цена");
+    printf("\n=================================================================\n");
+   
+    if (!spisok)
+        for (i = 0; i < NC; i++)
+            vstavka(player, player[i].name,NC);
+    for (nt = spisok; nt != 0; nt = nt->sled)
+    {
+        Console::CursorLeft = 0;
+        Console::CursorTop = x + 1;
+        printf(" %-20s %d", nt->fio, nt->summa);
+        x += 1;
+    }
+    x = 3;
+    Console::CursorLeft = 40;
+    Console::CursorTop = x + 1;
+    for (nt = spisok; nt != 0; z = nt, nt = nt->sled);
+    for (nt = z, i = 0; nt != 0; i++, nt = nt->pred)
+    {
+        Console::CursorLeft = 40;
+        Console::CursorTop = x + 1;
+        printf(" %-20s %d", nt->fio, nt->summa);
+        x += 1;
+    }
+    getch();
+}
+void vstavka(struct z* player, char* fio,int NC)
+{
+    int i;
+    struct sp* New, * nt, * z = 0;
+    for (nt = spisok; nt != 0 && strcmp(nt->fio, fio) < 0; z = nt, nt = nt->sled);
+    if (nt && strcmp(nt->fio, fio) == 0) return;
+    New = (struct sp*)malloc(sizeof(struct sp));
+    strcpy(New->fio, fio);
+    New->sled = nt;//след
+    New->summa = 0;
+    if (nt) nt->pred = New;
+    New->pred = z; //пред
+    for (i = 0; i < NC; i++)
+        if (strcmp(player[i].name, fio) == 0)
+            New->summa += player[i].money;
+    if (!z) spisok = New;
+    else z->sled = New;
+    return;
+}
+void vopros1(struct z* player,int NC)
+{
+    int i;
+    bool flag = false;
+    Console::ForegroundColor = ConsoleColor::Red;
+    Console::BackgroundColor = ConsoleColor::White;
+    Console::Clear();
+    printf(" Игроки в одинаковых бутсах(Joma) и с одинаковым количеством голов(1) \n");
+    printf("  Фамилия               Фирма Голы\n");
+    printf("======================================================================\n");
+    for (i = 0; i < NC; i++)
+    {
+
+        if (strcmp(player[i].brand, "Joma") == 0 && player[i].goals == 1)
+        {
+            printf("  %-20s  %s  %d\n", player[i].name, player[i].brand, player[i].goals);
+            flag = true;
+        }
+    }
+    if (!flag)
+    {
+        printf(" Такие игроки отсутствуют ");
+    }
+    getch();
+    return;
+}
+
+void diagram(struct z* player,int NC)
+{
+    struct sp* nt;
+    int len, i, NColor;
+    long sum = 0;
+    char str1[20];
+    char str2[20];
+    System::ConsoleColor Color; Console::ForegroundColor =
+        System::ConsoleColor::Yellow;
+    Console::BackgroundColor = System::ConsoleColor::Gray;
+    Console::Clear();
+    for (i = 0; i < NC; i++) sum = sum + player[i].money;
+    if (!spisok)
+        for (i = 0; i < NC; i++)
+            vstavka(player, player[i].name,NC);
+    Color = System::ConsoleColor::Black; NColor = 0;
+    for (nt = spisok, i = 0; nt != 0; nt = nt->sled, i++)
+    {
+        sprintf(str1, "%s", nt->fio);
+        sprintf(str2, "%3.1f%%", (nt->summa * 100. / sum));
+        Console::ForegroundColor = System::ConsoleColor::DarkRed;
+        Console::BackgroundColor = System::ConsoleColor::Gray;
+        Console::CursorLeft = 5;
+        Console::CursorTop = i + 1; printf(str1);
+        Console::CursorLeft = 20; printf(str2);
+        Console::BackgroundColor = ++Color;
+        Console::CursorLeft = 30;
+        for (len = 0; len < nt->summa * 100 / sum; len++)
+            printf(" ");
+        if (NColor == 14) Color = ConsoleColor::Black; NColor = 0;
+    }
+    getch();
+    return;
+}
